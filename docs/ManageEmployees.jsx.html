@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: ManageEmployees.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: ManageEmployees.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * ManageEmployees component allows employee management.
+ * 
+ * @module ManageEmployees
+ * @component
+ * @param {Object} props - Component properties
+ * @param {Function} props.setNav - Function to set the state of the navigation
+ * @returns {JSX.Element} ManageEmployees component
+ */
+
+import React, { useEffect, useState } from 'react';
+import { useAuth } from './AuthProvider';
+import { Link } from "react-router-dom";
+
+/**
+ * @typedef {Object} Employee
+ * @property {string} id - Employee ID
+ * @property {string} name - Employee name
+ * @property {boolean} ismanager - Indicates if employee is a manager
+ * @property {boolean} isactive - Indicates if employee is active
+ * @property {string} logincode - Login code for the employee
+ * @property {string} timecreated - Timestamp when the employee was created
+ */
+
+const ManageEmployees = ( {setNav} ) => {
+    const { user, fetchWithAuth } = useAuth();
+    const [employeeData, setEmployeeData] = useState([]);
+    const [newEmployee, setNewEmployee] = useState({
+        id: '',
+        name: '',
+        ismanager: false,
+        isactive: true,
+        logincode: ''
+    });
+
+    const [editEmployee, setEditEmployee] = useState(null); // State to hold the employee being edited
+
+    useEffect(() => {
+        /**
+         * Fetches employee data with authentication.
+         * @async
+         */
+        const fetchData = async () => {
+            const response = await fetchWithAuth("SELECT * FROM employees")
+            setEmployeeData(response)
+        }
+
+        fetchData()
+    }, [])
+
+    /**
+     * Handles input changes for adding and editing employees.
+     * @param {React.ChangeEvent&lt;HTMLInputElement>} e - Input change event
+     */
+    const handleInputChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        setNewEmployee(prev => ({
+            ...prev,
+            [name]: type === 'checkbox' ? checked : value
+        }));
+
+        // If in edit mode, update the editEmployee state as well
+        if (editEmployee) {
+            setEditEmployee(prev => ({
+                ...prev,
+                [name]: type === 'checkbox' ? checked : value
+            }));
+        }
+    };
+
+    /**
+     * Adds a new employee to the database and updates the employee data state
+     * @param {React.FormEvent&lt;HTMLFormElement>} e - Form submit event
+     */
+    const addEmployee = (e) => {
+        e.preventDefault();
+        const { id, name, ismanager, isactive, logincode } = newEmployee;
+        const timecreated = new Date().toISOString();
+
+        fetch('http://localhost:3000/query', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user}`
+            },
+            body: JSON.stringify({
+                query: `INSERT INTO employees (id, name, ismanager, isactive, timecreated, logincode) VALUES (${id}, '${name}', ${ismanager}, ${isactive}, '${timecreated}', '${logincode}')`
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            setEmployeeData(prevData => [
+                ...prevData,
+                { id, name, ismanager, isactive, timecreated, logincode }
+            ]);
+            setNewEmployee({ id: '', name: '', ismanager: false, isactive: true, logincode: '' });
+        })
+        .catch(error => {
+            console.error('Error adding new employee:', error);
+        });
+    };
+
+    /**
+     * Updates an existing employee's information in the database
+     * @param {React.FormEvent&lt;HTMLFormElement>} e - Form submit event
+     */
+    const updateEmployee = (e) => {
+        e.preventDefault();
+        const { id, name, ismanager, isactive, logincode } = editEmployee;
+
+        fetch('http://localhost:3000/query', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user}`
+            },
+            body: JSON.stringify({
+                query: `UPDATE employees SET name = '${name}', ismanager = ${ismanager}, isactive = ${isactive}, logincode = '${logincode}' WHERE id = ${id}`
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            setEmployeeData(prevData =>
+                prevData.map(employee =>
+                    employee.id === id ? { ...employee, name, ismanager, isactive, logincode } : employee
+                )
+            );
+            setEditEmployee(null); // Reset edit state after successful update
+        })
+        .catch(error => {
+            console.error('Error updating employee:', error);
+        });
+    };
+
+    /**
+     * Toggles the manager status of an employee
+     * @param {string} id - Employee ID
+     * @param {boolean} isManager - Manager status
+     */
+    const toggleManagerStatus = (id, isManager) => {
+        fetch('http://localhost:3000/query', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user}`
+            },
+            body: JSON.stringify({
+                query: `UPDATE employees SET ismanager = ${!isManager} WHERE id = ${id}`
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            setEmployeeData(prevData =>
+                prevData.map(employee =>
+                    employee.id === id ? { ...employee, ismanager: !isManager } : employee
+                )
+            );
+        })
+        .catch(error => {
+            console.error('Error updating manager status:', error);
+        });
+    };
+
+    /**
+     * Toggles the active status of an employee
+     * @param {string} id - Employee ID
+     * @param {boolean} isActive - current active status
+     */
+    const toggleActiveStatus = (id, isActive) => {
+        fetch('http://localhost:3000/query', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user}`
+            },
+            body: JSON.stringify({
+                query: `UPDATE employees SET isactive = ${!isActive} WHERE id = ${id}`
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            setEmployeeData(prevData =>
+                prevData.map(employee =>
+                    employee.id === id ? { ...employee, isactive: !isActive } : employee
+                )
+            );
+        })
+        .catch(error => {
+            console.error('Error updating active status:', error);
+        });
+    };
+
+    return (
+        &lt;div style={{ padding: '20px' }}>
+            &lt;div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                &lt;h2>Employee List&lt;/h2>
+                &lt;div>
+                    &lt;button style={buttonStyle} onClick={() => setNav('main')}>Back to Manager&lt;/button>
+                &lt;/div>
+            &lt;/div>
+            &lt;div style={{ maxHeight: '300px', overflowY: 'auto', border: '4px solid', marginBottom: '20px' }}>
+                {employeeData.length > 0 ? (
+                    &lt;table style={{ borderCollapse: 'collapse', width: '100%' }}>
+                        &lt;thead>
+                            &lt;tr>
+                                &lt;th style={tableCellStyle}>ID&lt;/th>
+                                &lt;th style={tableCellStyle}>Name&lt;/th>
+                                &lt;th style={tableCellStyle}>Is Manager&lt;/th>
+                                &lt;th style={tableCellStyle}>Is Active&lt;/th>
+                                &lt;th style={tableCellStyle}>Time Created&lt;/th>
+                                &lt;th style={tableCellStyle}>Login Code&lt;/th>
+                                &lt;th style={tableCellStyle}>Promote/Demote&lt;/th>
+                                &lt;th style={tableCellStyle}>Activate/Deactivate&lt;/th>
+                                &lt;th style={tableCellStyle}>Edit&lt;/th>
+                            &lt;/tr>
+                        &lt;/thead>
+                        &lt;tbody>
+                            {employeeData.map(employee => (
+                                &lt;tr key={employee.id}>
+                                    &lt;td style={tableCellStyle}>{employee.id}&lt;/td>
+                                    &lt;td style={tableCellStyle}>{employee.name}&lt;/td>
+                                    &lt;td style={tableCellStyle}>{employee.ismanager ? 'Yes' : 'No'}&lt;/td>
+                                    &lt;td style={tableCellStyle}>{employee.isactive ? 'Yes' : 'No'}&lt;/td>
+                                    &lt;td style={tableCellStyle}>{new Date(employee.timecreated).toLocaleString()}&lt;/td>
+                                    &lt;td style={tableCellStyle}>{employee.logincode}&lt;/td>
+                                    &lt;td style={tableCellStyle}>
+                                        &lt;button
+                                            style={toggleButtonStyle}
+                                            onClick={() => toggleManagerStatus(employee.id, employee.ismanager)}
+                                        >
+                                            {employee.ismanager ? 'Demote' : 'Promote'}
+                                        &lt;/button>
+                                    &lt;/td>
+                                    &lt;td style={tableCellStyle}>
+                                        &lt;button
+                                            style={toggleButtonStyle}
+                                            onClick={() => toggleActiveStatus(employee.id, employee.isactive)}
+                                        >
+                                            {employee.isactive ? 'Deactivate' : 'Activate'}
+                                        &lt;/button>
+                                    &lt;/td>
+                                    &lt;td style={tableCellStyle}>
+                                        &lt;button
+                                            style={toggleButtonStyle}
+                                            onClick={() => setEditEmployee(employee)}
+                                        >
+                                            Edit
+                                        &lt;/button>
+                                    &lt;/td>
+                                &lt;/tr>
+                            ))}
+                        &lt;/tbody>
+                    &lt;/table>
+                ) : (
+                    "Loading..."
+                )}
+            &lt;/div>
+
+            {editEmployee ? (
+                &lt;div>
+                    &lt;h3>Edit Employee&lt;/h3>
+                    &lt;form onSubmit={updateEmployee} style={formStyle}>
+                        &lt;label>
+                            ID: {editEmployee.id}
+                        &lt;/label>
+                        &lt;label>
+                            Name:
+                            &lt;input
+                                type="text"
+                                name="name"
+                                value={editEmployee.name}
+                                onChange={handleInputChange}
+                                required
+                            />
+                        &lt;/label>
+                        &lt;label>
+                            Manager:
+                            &lt;input
+                                type="checkbox"
+                                name="ismanager"
+                                checked={editEmployee.ismanager}
+                                onChange={handleInputChange}
+                            />
+                        &lt;/label>
+                        &lt;label>
+                            Active:
+                            &lt;input
+                                type="checkbox"
+                                name="isactive"
+                                checked={editEmployee.isactive}
+                                onChange={handleInputChange}
+                            />
+                        &lt;/label>
+                        &lt;label>
+                            Login Code:
+                            &lt;input
+                                type="text"
+                                name="logincode"
+                                value={editEmployee.logincode}
+                                onChange={handleInputChange}
+                                required
+                            />
+                        &lt;/label>
+                        &lt;button type="submit" style={buttonStyle}>Update Employee&lt;/button>
+                    &lt;/form>
+                &lt;/div>
+            ) : (
+                &lt;div>
+                    &lt;h3>Add New Employee&lt;/h3>
+                    &lt;form onSubmit={addEmployee} style={formStyle}>
+                        &lt;label>
+                            ID:
+                            &lt;input
+                                type="number"
+                                name="id"
+                                value={newEmployee.id}
+                                onChange={handleInputChange}
+                                required
+                            />
+                        &lt;/label>
+                        &lt;label>
+                            Name:
+                            &lt;input
+                                type="text"
+                                name="name"
+                                value={newEmployee.name}
+                                onChange={handleInputChange}
+                                required
+                            />
+                        &lt;/label>
+                        &lt;label>
+                            Manager:
+                            &lt;input
+                                type="checkbox"
+                                name="ismanager"
+                                checked={newEmployee.ismanager}
+                                onChange={handleInputChange}
+                            />
+                        &lt;/label>
+                        &lt;label>
+                            Active:
+                            &lt;input
+                                type="checkbox"
+                                name="isactive"
+                                checked={newEmployee.isactive}
+                                onChange={handleInputChange}
+                            />
+                        &lt;/label>
+                        &lt;label>
+                            Login Code:
+                            &lt;input
+                                type="text"
+                                name="logincode"
+                                value={newEmployee.logincode}
+                                onChange={handleInputChange}
+                                required
+                            />
+                        &lt;/label>
+                        &lt;button type="submit" style={buttonStyle}>Add Employee&lt;/button>
+                    &lt;/form>
+                &lt;/div>
+            )}
+        &lt;/div>
+    );
+};
+
+const tableCellStyle = {
+    border: '1px solid black',
+    padding: '8px',
+    textAlign: 'left',
+};
+
+const formStyle = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    marginTop: '20px',
+};
+
+const buttonStyle = {
+    color: 'white',
+    backgroundColor: '#dc3545',
+    padding: '10px 20px',
+    border: 'none',
+    borderRadius: '5px',
+    cursor: 'pointer',
+};
+
+const toggleButtonStyle = {
+    cursor: 'pointer',
+    backgroundColor: '#dc3545',
+    color: 'white',
+    fontSize: '12px',
+    padding: '5px 10px',
+    border: 'none',
+    borderRadius: '3px',
+    transition: 'background-color 0.3s',
+};
+
+export default ManageEmployees;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Inventory.html">Inventory</a></li><li><a href="module-ManageEmployees.html">ManageEmployees</a></li><li><a href="module-SuggestionPanel.html">SuggestionPanel</a></li><li><a href="module-ZReport.html">ZReport</a></li></ul><h3>Global</h3><ul><li><a href="global.html#App">App</a></li><li><a href="global.html#AuthProvider">AuthProvider</a></li><li><a href="global.html#BowlOrdering">BowlOrdering</a></li><li><a href="global.html#Cart">Cart</a></li><li><a href="global.html#Checkout">Checkout</a></li><li><a href="global.html#Clock">Clock</a></li><li><a href="global.html#CreateReport">CreateReport</a></li><li><a href="global.html#EditIngredients">EditIngredients</a></li><li><a href="global.html#Employee">Employee</a></li><li><a href="global.html#Keypad">Keypad</a></li><li><a href="global.html#Kitchen">Kitchen</a></li><li><a href="global.html#KitchenPanel">KitchenPanel</a></li><li><a href="global.html#ManageMenu">ManageMenu</a></li><li><a href="global.html#MenuBoard">MenuBoard</a></li><li><a href="global.html#RestockReport">RestockReport</a></li><li><a href="global.html#Rewards">Rewards</a></li><li><a href="global.html#TextFormatter">TextFormatter</a></li><li><a href="global.html#TransactionHistory">TransactionHistory</a></li><li><a href="global.html#Translate">Translate</a></li><li><a href="global.html#UsageReport">UsageReport</a></li><li><a href="global.html#XReport">XReport</a></li><li><a href="global.html#fetchData">fetchData</a></li><li><a href="global.html#googleTranslateElementInit">googleTranslateElementInit</a></li><li><a href="global.html#newManagerPage">newManagerPage</a></li><li><a href="global.html#useAuth">useAuth</a></li><li><a href="global.html#usePoints">usePoints</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Wed Dec 04 2024 17:57:17 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: main.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: main.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview Main entry point for the Panda Express management system
+ * Configures routing and authentication providers for the application
+ */
+
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import { GoogleOAuthProvider } from "@react-oauth/google"
+import { BrowserRouter, Routes, Route } from "react-router-dom"
+
+import './index.css'
+import { AuthProvider } from './AuthProvider.jsx'
+import App from './App.jsx'
+import Selection from './Selection.jsx'
+import Kiosk from './Kiosk.jsx'
+import MenuBoard from './MenuBoard.jsx'
+import Employee from './Employee.jsx'
+import Kitchen from './Kitchen.jsx'
+import Manager from './Manager.jsx'
+import ManageEmployees from './ManageEmployees.jsx'
+import ManageMenu from './ManageMenu.jsx'
+import Clock from './clock.jsx'
+import RestockReport from './RestockReport.jsx'
+import SalesReport from './SalesReport.jsx'
+import UsageChart from './UsageChart.jsx'
+import XReport from './XReport.jsx'
+import ZReport from './ZReport.jsx'
+import Inventory from './Inventory.jsx'
+import CreateReport from './CreateReport.jsx'
+import TransactionHistory from './transactionHistory.jsx'
+import BowlOrdering from './BowlOrdering.jsx'
+import EditIngredients from './editIngredient.jsx'
+import NewManagerPage from './newManagerPage.jsx'
+
+/**
+ * Application Routes Configuration
+ * @typedef {Object} RouteConfig
+ * @property {string} path - URL path for the route
+ * @property {JSX.Element} element - Component to render at the route
+ */
+
+/**
+ * Main application structure with the following features:
+ * - Google OAuth authentication
+ * - React Router for navigation
+ * - Custom auth context provider
+ * 
+ * @component
+ */
+ReactDOM.createRoot(document.getElementById('root')).render(
+  &lt;GoogleOAuthProvider clientId='832110389487-mnq08kcgrvddaii903mufvkop57j912i.apps.googleusercontent.com'>
+    &lt;BrowserRouter>
+      &lt;AuthProvider>
+        &lt;Routes>
+          {/* Main Entry */}
+          &lt;Route index element={&lt;App/>} />
+          &lt;Route path="selection" element={&lt;Selection/>}/>
+
+          {/* Customer Interfaces */}
+          &lt;Route path="kiosk" element={&lt;Kiosk/>}/>
+          &lt;Route path="menuboard" element={&lt;MenuBoard/>}/>
+          &lt;Route path="BowlOrdering" element={&lt;BowlOrdering/>}/>
+
+          {/* Employee Interfaces */}
+          &lt;Route path="employee" element={&lt;Employee/>}/>
+          &lt;Route path="kitchen" element={&lt;Kitchen/>}/>
+
+          {/* Management Interfaces */}
+          &lt;Route path="manager" element={&lt;Manager/>}/>
+          &lt;Route path="NewManagerPage" element={&lt;NewManagerPage/>}/>
+          &lt;Route path="manage-employees" element={&lt;ManageEmployees/>}/>
+          &lt;Route path="manage-menu" element={&lt;ManageMenu/>}/>
+          
+          {/* Reports and Analytics */}
+          &lt;Route path="restock-report" element={&lt;RestockReport/>}/>
+          &lt;Route path="sales-report" element={&lt;SalesReport/>}/>
+          &lt;Route path="usage-chart" element={&lt;UsageChart/>}/>
+          &lt;Route path="x-report" element={&lt;XReport/>}/>
+          &lt;Route path="z-report" element={&lt;ZReport/>}/>
+          &lt;Route path="create-reports" element={&lt;CreateReport/>}/>
+          &lt;Route path="transactionHistory" element={&lt;TransactionHistory/>}/>
+
+          {/* Inventory Management */}
+          &lt;Route path="inventory" element={&lt;Inventory/>}/>
+          &lt;Route path="edit-ingredients/:menuId" element={&lt;EditIngredients/>}/>
+
+          {/* Utilities */}
+          &lt;Route path="current-time" element={&lt;Clock/>}/>
+        &lt;/Routes>
+      &lt;/AuthProvider>
+    &lt;/BrowserRouter>
+  &lt;/GoogleOAuthProvider>
+)</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Inventory.html">Inventory</a></li><li><a href="module-ManageEmployees.html">ManageEmployees</a></li><li><a href="module-SuggestionPanel.html">SuggestionPanel</a></li><li><a href="module-ZReport.html">ZReport</a></li></ul><h3>Global</h3><ul><li><a href="global.html#App">App</a></li><li><a href="global.html#AuthProvider">AuthProvider</a></li><li><a href="global.html#BowlOrdering">BowlOrdering</a></li><li><a href="global.html#Cart">Cart</a></li><li><a href="global.html#Checkout">Checkout</a></li><li><a href="global.html#Clock">Clock</a></li><li><a href="global.html#CreateReport">CreateReport</a></li><li><a href="global.html#EditIngredients">EditIngredients</a></li><li><a href="global.html#Employee">Employee</a></li><li><a href="global.html#Keypad">Keypad</a></li><li><a href="global.html#Kitchen">Kitchen</a></li><li><a href="global.html#KitchenPanel">KitchenPanel</a></li><li><a href="global.html#ManageMenu">ManageMenu</a></li><li><a href="global.html#MenuBoard">MenuBoard</a></li><li><a href="global.html#RestockReport">RestockReport</a></li><li><a href="global.html#Rewards">Rewards</a></li><li><a href="global.html#TextFormatter">TextFormatter</a></li><li><a href="global.html#TransactionHistory">TransactionHistory</a></li><li><a href="global.html#Translate">Translate</a></li><li><a href="global.html#UsageReport">UsageReport</a></li><li><a href="global.html#XReport">XReport</a></li><li><a href="global.html#fetchData">fetchData</a></li><li><a href="global.html#googleTranslateElementInit">googleTranslateElementInit</a></li><li><a href="global.html#newManagerPage">newManagerPage</a></li><li><a href="global.html#useAuth">useAuth</a></li><li><a href="global.html#usePoints">usePoints</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Wed Dec 04 2024 17:57:17 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: SuggestionPanel.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: SuggestionPanel.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * SuggestionPanel component displays suggested food items to add to the cart.
+ * 
+ * @module SuggestionPanel
+ * @component
+ * @param {Object} props - Component properties
+ * @param {Function} props.setCart - Function to update the cart state
+ * @param {Function} props.setCost - Function to update the total cost
+ * @returns {JSX.Element} SuggestionPanel component
+ */
+import React, { useEffect, useState } from 'react';
+
+/**
+ * FoodCard component displays a food item with details
+ * 
+ * @component
+ * @param {Object} props - Component properties
+ * @param {string} props.name - Name of the food item
+ * @param {number} props.price - Price of the food item
+ * @param {string} props.imageUrl - URL of the food item's image
+ * @param {Function} props.setCart - Function to update the cart state
+ * @param {Function} props.setCost - Function to update the total cost
+ * @returns {JSX.Element} FoodCard component
+ */
+const FoodCard = ({ name, price, imageUrl, setCart, setCost }) => {
+  
+  /**
+   * Handles the click event to add the item to the cart.
+   */
+  const handleClick = () => {
+    // console.log("trying to add", name)
+    setCart((prevCart) => prevCart + name + ",");
+    setCost(prevCost => Number(prevCost + price))
+  }
+
+  return (
+    &lt;div style={{
+      border: '1px solid #ddd',
+      borderRadius: '8px',
+      padding: '12px',
+      width: '180px',
+      backgroundColor: 'white',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      margin: '0 10px'
+    }} onClick={handleClick}>
+      &lt;img 
+        src={imageUrl} 
+        alt={name}
+        style={{
+          width: '150px',
+          height: '120px',
+          objectFit: 'cover',
+          borderRadius: '4px',
+          marginBottom: '8px'
+        }}
+        />
+      &lt;h3 style={{
+        margin: '0 0 4px 0',
+        fontSize: '16px',
+        color: '#333',
+        textAlign: 'center'
+      }}>
+        {name}
+      &lt;/h3>
+      &lt;p style={{
+        margin: '0',
+        fontSize: '16px',
+        color: '#2c5282',
+        fontWeight: 'normal'
+      }}>
+        ${price.toFixed(2)}
+      &lt;/p>
+    &lt;/div>
+  );
+};
+
+const SuggestionPanel = ( {setCart, setCost} ) => {
+  const [suggestions, setSuggestions]  = useState([])
+  const entrees = [
+    {
+      name: "Orange Chicken",
+      price: 5.20,
+      imageUrl: "https://img.buzzfeed.com/thumbnailer-prod-us-east-1/video-api/assets/131902.jpg"
+    },
+    {
+      name: "Grilled Teriyaki Chicken",
+      price: 5.20,
+      imageUrl: "https://whisperofyum.com/wp-content/uploads/2023/10/whisper-of-yum-Grilled-Teriyaki-Chicken-683x1024.jpg"
+    },
+    {
+      name: "Beijing Beef",
+      price: 5.20,
+      imageUrl: "https://dinnerthendessert.com/wp-content/uploads/2017/02/Panda-Express-Beijing-Beef-4.jpg"
+    }
+  ]
+
+  const apps = [
+    {
+      name: "Veggie Spring Roll",
+      price: 2.00,
+      imageUrl: "https://clutchdeliveries.com/cdn/shop/products/veggie_spring_roll_grande.png?v=1564258581"
+    },
+    {
+      name: "Cream Cheese Rangoon",
+      price: 2.00,
+      imageUrl: "https://i.pinimg.com/736x/17/5d/af/175daf623f62d504098bd61d2af94364.jpg"
+    },
+    {
+      name: "Apple Pie Roll",
+      price: 2.00,
+      imageUrl: "https://i0.wp.com/www.theimpulsivebuy.com/wordpress/wp-content/uploads/2023/09/pandaapppierolls2.jpeg"
+    }
+  ]
+
+  const drinks = [
+    {
+      name: "Dr. Pepper",
+      price: 2.30,
+      imageUrl: "https://img.cdn4dd.com/p/fit=cover,width=1200,height=1200,format=auto,quality=90/media/photosV2/05fca6cc-b3d3-40ac-9db5-73baeac5e487-retina-large.png"
+    },
+    {
+      name: "Mountain Dew",
+      price: 2.30,
+      imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTOxi43ja6-8uh9gamzCRd9Ogyyx8sRJ-LTAQ&amp;s"
+    },
+    {
+      name: "Gatorade",
+      price: 2.70,
+      imageUrl: "https://i5.walmartimages.com/seo/Gatorade-Thirst-Quencher-Fruit-Punch-Sports-Drinks-28-fl-oz-Bottle_fbe498cd-fd5d-487e-b3cd-25b9f1788d63_1.8a49ae79fad76b4e9cd31169a456b801.jpeg"
+    }
+  ]
+
+  useEffect(() => {
+     /**
+     * Sets random suggestions from entrees, apps, and drinks
+     */
+    setSuggestions([entrees[Math.floor(Math.random()*2.99)], apps[Math.floor(Math.random()*2.99)], drinks[Math.floor(Math.random()*2.99)]])
+
+  }, [])
+
+  return (
+    &lt;div style={{
+      padding: '20px',
+      backgroundColor: '#f7f7f7',
+      borderRadius: '12px',
+      width: 'fit-content',
+      margin: '0 auto'
+    }}>
+      &lt;h2 style={{
+        textAlign: 'center',
+        color: '#333',
+        marginBottom: '15px',
+        fontSize: '20px'
+      }}>
+        Today's Suggestions
+      &lt;/h2>
+      &lt;div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        flexDirection: 'row',
+        flexWrap: 'nowrap'
+      }}>
+        {suggestions.map((item, index) => (
+          &lt;FoodCard
+            key={index}
+            name={item.name}
+            price={item.price}
+            imageUrl={item.imageUrl}
+            setCart={setCart}
+            setCost={setCost}
+          />
+        ))}
+      &lt;/div>
+    &lt;/div>
+  );
+};
+
+export default SuggestionPanel;</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Inventory.html">Inventory</a></li><li><a href="module-ManageEmployees.html">ManageEmployees</a></li><li><a href="module-SuggestionPanel.html">SuggestionPanel</a></li><li><a href="module-ZReport.html">ZReport</a></li></ul><h3>Global</h3><ul><li><a href="global.html#App">App</a></li><li><a href="global.html#AuthProvider">AuthProvider</a></li><li><a href="global.html#BowlOrdering">BowlOrdering</a></li><li><a href="global.html#Cart">Cart</a></li><li><a href="global.html#Checkout">Checkout</a></li><li><a href="global.html#Clock">Clock</a></li><li><a href="global.html#CreateReport">CreateReport</a></li><li><a href="global.html#EditIngredients">EditIngredients</a></li><li><a href="global.html#Employee">Employee</a></li><li><a href="global.html#Keypad">Keypad</a></li><li><a href="global.html#Kitchen">Kitchen</a></li><li><a href="global.html#KitchenPanel">KitchenPanel</a></li><li><a href="global.html#ManageMenu">ManageMenu</a></li><li><a href="global.html#MenuBoard">MenuBoard</a></li><li><a href="global.html#RestockReport">RestockReport</a></li><li><a href="global.html#Rewards">Rewards</a></li><li><a href="global.html#TextFormatter">TextFormatter</a></li><li><a href="global.html#TransactionHistory">TransactionHistory</a></li><li><a href="global.html#Translate">Translate</a></li><li><a href="global.html#UsageReport">UsageReport</a></li><li><a href="global.html#XReport">XReport</a></li><li><a href="global.html#fetchData">fetchData</a></li><li><a href="global.html#googleTranslateElementInit">googleTranslateElementInit</a></li><li><a href="global.html#newManagerPage">newManagerPage</a></li><li><a href="global.html#useAuth">useAuth</a></li><li><a href="global.html#usePoints">usePoints</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Wed Dec 04 2024 17:57:17 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

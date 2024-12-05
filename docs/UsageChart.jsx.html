@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: UsageChart.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: UsageChart.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import React, { useState, useEffect } from 'react';
+import { useAuth } from './AuthProvider';
+import {Link} from 'react-router-dom';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Pie } from 'react-chartjs-2';
+
+ChartJS.register(ArcElement, Tooltip, Legend);
+/**
+ * UsageReport Component
+ * Displays a report chart of inventory usage based on transaction data within a selected date range.
+ *
+ * @component
+ * @param {Object} props - Component properties.
+ * @param {Function} props.setNav - Function to navigate to other views in the application.
+ * @returns {JSX.Element} The UsageReport component.
+ */
+const UsageReport = ({ setNav }) => {
+  const { user, fetchWithAuth } = useAuth();
+  const [usageData, setUsageData] = useState([]);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+   /**
+   * Fetches usage data for inventory items based on a date range and updates the state.
+   * Validates user authentication and input dates before querying.
+   * 
+   * @async
+   * @returns {Promise&lt;void>} Resolves when data is fetched or an error is encountered.
+   */
+  const generateUsageReport = async () => {
+    if (!user) {
+      setError("User not authenticated");
+      return;
+    }
+
+    if (!startDate || !endDate) {
+      setError("Start and end dates are required");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const query = `
+        SELECT inv.itemname AS inventory_name, COUNT(ti.item_num) AS total_inventory_used
+        FROM transaction_items ti
+        JOIN transaction_history th ON ti.transaction_id = th.transaction_id
+        JOIN menuinventory mi ON ti.item_num = mi.menu
+        JOIN inventory inv ON mi.inventory = inv.itemnum
+        WHERE th.transaction_date BETWEEN '${startDate}' AND '${endDate}'
+        GROUP BY inv.itemname
+        ORDER BY total_inventory_used DESC
+      `;
+
+      const response = await fetchWithAuth(query);
+
+      if (Array.isArray(response)) {
+        setUsageData(response);
+      } else {
+        setError("Unexpected data format received from server.");
+      }
+    } catch (error) {
+      setError("Failed to load usage data.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  /**
+   * Generates an array of random colors for chart data.
+   * 
+   * @param {number} numColors - The number of colors to generate.
+   * @returns {string[]} An array of HSL color strings.
+   */
+  const generateColors = (numColors) => {
+    const colors = [];
+    for (let i = 0; i &lt; numColors; i++) {
+      const hue = Math.floor(Math.random() * 360);
+      colors.push(`hsl(${hue}, 100%, 50%)`);
+    }
+    return colors;
+  };
+   /**
+   * Data structure for the chart displaying inventory usage.
+   * 
+   * @constant
+   * @type {Object}
+   * @property {string[]} labels - Names of inventory items.
+   * @property {Object[]} datasets - Dataset containing inventory usage data.
+   * @property {number[]} datasets[].data - Array of usage counts for each inventory item.
+   * @property {string[]} datasets[].backgroundColor - Array of colors for the chart slices.
+   * @property {number} datasets[].hoverOffset - Offset for slices on hover.
+   */
+  const chartData = {
+    labels: usageData.map(item => item.inventory_name),
+    datasets: [
+      {
+        label: 'Total Inventory Used',
+        data: usageData.map(item => item.total_inventory_used),
+        backgroundColor: generateColors(usageData.length),
+        hoverOffset: 4,
+      },
+    ],
+  };
+  /**
+   * Configuration options for the chart.
+   * 
+   * @constant
+   * @type {Object}
+   * @property {boolean} responsive - Determines if the chart is responsive.
+   * @property {boolean} maintainAspectRatio - Maintains aspect ratio of the chart.
+   * @property {Object} plugins - Configuration for chart plugins.
+   * @property {Object} plugins.legend - Configuration for the chart legend.
+   * @property {string} plugins.legend.position - Position of the chart legend.
+   */
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: {
+        position: 'right',
+      },
+    },
+  };
+   /**
+   * Effect hook that logs a message when the user object changes.
+   * Ensures the component acknowledges the user's authentication status.
+   * 
+   * @function
+   * @memberof UsageReport
+   * @param {Object} user - The authenticated user object.
+   */
+  useEffect(() => {
+    if (!user) {
+      console.log("Awaiting user authentication...");
+    }
+  }, [user]);
+
+  return (
+    &lt;div style={containerStyle}>
+      &lt;div style={headerStyle}>
+        &lt;h2>Usage Chart - Total Inventory Used&lt;/h2>
+        &lt;button style={buttonStyle} onClick={() => setNav('create-reports')}>
+          Back to Create Report
+        &lt;/button>
+      &lt;/div>
+      &lt;div style={formStyle}>
+        &lt;div>
+          &lt;label>Start Date (YYYY-MM-DD)&lt;/label>
+          &lt;input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+        &lt;/div>
+        &lt;div>
+          &lt;label>End Date (YYYY-MM-DD)&lt;/label>
+          &lt;input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+        &lt;/div>
+        &lt;button style={buttonStyle} onClick={generateUsageReport} disabled={!user || loading}>
+          {loading ? 'Loading...' : 'Generate Usage Report'}
+        &lt;/button>
+      &lt;/div>
+
+      {error &amp;&amp; &lt;div style={errorStyle}>{error}&lt;/div>}
+
+      {!error &amp;&amp; usageData.length > 0 &amp;&amp; (
+      &lt;div style={chartContainerStyle}>
+        &lt;Pie data={chartData} options={chartOptions} width={600} height={600}/>
+      &lt;/div>  
+      )}
+    &lt;/div>
+  );
+};
+
+const containerStyle = {
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center',
+  alignItems: 'center',
+  minHeight: '100vh',
+  padding: '20px',
+  backgroundColor: '#f5f5f5',
+};
+
+const headerStyle = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  width: '100%',
+  maxWidth: '800px',
+  marginBottom: '20px',
+};
+
+const formStyle = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  marginBottom: '20px',
+};
+
+const chartContainerStyle = {
+  width: '100%',
+  maxWidth: '800px',
+  height: 'auto',
+  marginTop: '10px',
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+};
+
+
+const buttonStyle = {
+  color: 'white',
+  backgroundColor: '#dc3545',
+  padding: '10px 20px',
+  border: 'none',
+  borderRadius: '5px',
+  cursor: 'pointer',
+};
+
+const errorStyle = {
+  color: 'red',
+  marginTop: '10px',
+};
+
+export default UsageReport;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Inventory.html">Inventory</a></li><li><a href="module-ManageEmployees.html">ManageEmployees</a></li><li><a href="module-SuggestionPanel.html">SuggestionPanel</a></li><li><a href="module-ZReport.html">ZReport</a></li></ul><h3>Global</h3><ul><li><a href="global.html#App">App</a></li><li><a href="global.html#AuthProvider">AuthProvider</a></li><li><a href="global.html#BowlOrdering">BowlOrdering</a></li><li><a href="global.html#Cart">Cart</a></li><li><a href="global.html#Checkout">Checkout</a></li><li><a href="global.html#Clock">Clock</a></li><li><a href="global.html#CreateReport">CreateReport</a></li><li><a href="global.html#EditIngredients">EditIngredients</a></li><li><a href="global.html#Employee">Employee</a></li><li><a href="global.html#Keypad">Keypad</a></li><li><a href="global.html#Kitchen">Kitchen</a></li><li><a href="global.html#KitchenPanel">KitchenPanel</a></li><li><a href="global.html#ManageMenu">ManageMenu</a></li><li><a href="global.html#MenuBoard">MenuBoard</a></li><li><a href="global.html#RestockReport">RestockReport</a></li><li><a href="global.html#Rewards">Rewards</a></li><li><a href="global.html#TextFormatter">TextFormatter</a></li><li><a href="global.html#TransactionHistory">TransactionHistory</a></li><li><a href="global.html#Translate">Translate</a></li><li><a href="global.html#UsageReport">UsageReport</a></li><li><a href="global.html#XReport">XReport</a></li><li><a href="global.html#fetchData">fetchData</a></li><li><a href="global.html#googleTranslateElementInit">googleTranslateElementInit</a></li><li><a href="global.html#newManagerPage">newManagerPage</a></li><li><a href="global.html#useAuth">useAuth</a></li><li><a href="global.html#usePoints">usePoints</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Wed Dec 04 2024 17:57:17 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: transactionHistory.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: transactionHistory.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @typedef {Object} Transaction
+ * @property {number} transaction_id - Unique identifier for the transaction
+ * @property {string} transaction_date - Date and time of the transaction
+ * @property {number} amount - Total amount of the transaction
+ * @property {string} name - Customer name
+ * @property {string} order_string - Details of items ordered
+ * @property {string} order_status - Current status of the order
+ */
+
+import React, { useEffect, useState } from 'react';
+import { useAuth } from './AuthProvider';
+import { Link } from "react-router-dom";
+
+/**
+ * TransactionHistory Component - Displays a table of recent transactions
+ * Shows the most recent 1000 transactions in descending order by transaction ID
+ * 
+ * @component
+ * @param {Object} props - Component props
+ * @param {Function} props.setNav - Function to update navigation state
+ * @returns {JSX.Element} The rendered TransactionHistory component
+ */
+const TransactionHistory = ( {setNav} ) => {
+    const { user, fetchWithAuth } = useAuth();
+    const [transactionData, setTransactionData] = useState([]);
+
+    /**
+     * Fetches transaction history data from the database
+     * Retrieves the 1000 most recent transactions
+     * 
+     * @async
+     * @function
+     * @returns {Promise&lt;void>}
+     */
+    const generateTransactionHistory = async () => {
+        if (!user) {
+            return;
+        }
+
+        try {
+            const query = `SELECT * FROM transaction_history ORDER BY transaction_id DESC LIMIT 1000`;
+            const response = await fetchWithAuth(query);
+            if (Array.isArray(response)) {
+                setTransactionData(response);
+                console.log("Transaction data set successfully:", response);  // Log if data is successfully set
+            } else {
+                console.error("Unexpected response format:", response);  // Log if response is not in expected format
+            }
+        } catch (error) {
+            console.error("Error fetching transaction data:", error);  // Log any errors caught in the try block
+        }
+    };
+
+    /**
+     * Fetches transaction data when component mounts or user changes
+     */
+    useEffect(() => {
+        generateTransactionHistory();
+    }, [user]); 
+
+    return (
+        &lt;div style={{ padding: '20px' }}>
+            &lt;div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                &lt;h2>Transaction History&lt;/h2>
+                &lt;div>
+                        &lt;button style={buttonStyle} onClick={() => setNav('main')}>Back Manager&lt;/button>
+                &lt;/div>
+            &lt;/div>
+            &lt;div style={{
+                maxHeight: '600px',
+                overflowY: 'auto',
+                border: '4px solid',
+                marginBottom: '20px'
+            }}>
+                {transactionData.length > 0 ? (
+                    &lt;table style={{ borderCollapse: 'collapse', width: '100%' }}>
+                        &lt;thead>
+                            &lt;tr>
+                                &lt;th style={tableCellStyle}>Transaction ID&lt;/th>
+                                &lt;th style={tableCellStyle}>Transaction Date&lt;/th>
+                                &lt;th style={tableCellStyle}>Amount&lt;/th>
+                                &lt;th style={tableCellStyle}>Name&lt;/th>
+                                &lt;th style={tableCellStyle}>Order&lt;/th>
+                                &lt;th style={tableCellStyle}>Order Status&lt;/th>
+                            &lt;/tr>
+                        &lt;/thead>
+                        &lt;tbody>
+                            {transactionData.map((item, index) => (
+                                &lt;tr key={index}>
+                                    &lt;td style={tableCellStyle}>{item.transaction_id}&lt;/td>
+                                    &lt;td style={tableCellStyle}>{item.transaction_date}&lt;/td>
+                                    &lt;td style={tableCellStyle}>${Number(item.amount).toFixed(2)}&lt;/td>
+                                    &lt;td style={tableCellStyle}>{item.name}&lt;/td>
+                                    &lt;td style={tableCellStyle}>{item.order_string}&lt;/td>
+                                    &lt;td style={tableCellStyle}>{item.order_status}&lt;/td>
+                                &lt;/tr>
+                            ))}
+                        &lt;/tbody>
+                    &lt;/table>
+                ) : (
+                    &lt;div style={{ padding: '20px', textAlign: 'center' }}>
+                        {transactionData.length === 0 ? "No transactions found." : "All items are sufficiently stocked."}
+                    &lt;/div>
+                )}
+            &lt;/div>
+        &lt;/div>
+    );
+}
+
+const tableCellStyle = {
+    border: '1px solid #ddd',
+    padding: '8px',
+    textAlign: 'left'
+};
+const buttonStyle = {
+    color: 'white',
+    backgroundColor: '#dc3545',
+    padding: '10px 20px',
+    border: 'none',
+    borderRadius: '5px',
+    cursor: 'pointer',
+};
+
+export default TransactionHistory;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Inventory.html">Inventory</a></li><li><a href="module-ManageEmployees.html">ManageEmployees</a></li><li><a href="module-SuggestionPanel.html">SuggestionPanel</a></li><li><a href="module-ZReport.html">ZReport</a></li></ul><h3>Global</h3><ul><li><a href="global.html#App">App</a></li><li><a href="global.html#AuthProvider">AuthProvider</a></li><li><a href="global.html#BowlOrdering">BowlOrdering</a></li><li><a href="global.html#Cart">Cart</a></li><li><a href="global.html#Checkout">Checkout</a></li><li><a href="global.html#Clock">Clock</a></li><li><a href="global.html#CreateReport">CreateReport</a></li><li><a href="global.html#EditIngredients">EditIngredients</a></li><li><a href="global.html#Employee">Employee</a></li><li><a href="global.html#Keypad">Keypad</a></li><li><a href="global.html#Kitchen">Kitchen</a></li><li><a href="global.html#KitchenPanel">KitchenPanel</a></li><li><a href="global.html#ManageMenu">ManageMenu</a></li><li><a href="global.html#MenuBoard">MenuBoard</a></li><li><a href="global.html#RestockReport">RestockReport</a></li><li><a href="global.html#Rewards">Rewards</a></li><li><a href="global.html#TextFormatter">TextFormatter</a></li><li><a href="global.html#TransactionHistory">TransactionHistory</a></li><li><a href="global.html#Translate">Translate</a></li><li><a href="global.html#UsageReport">UsageReport</a></li><li><a href="global.html#XReport">XReport</a></li><li><a href="global.html#fetchData">fetchData</a></li><li><a href="global.html#googleTranslateElementInit">googleTranslateElementInit</a></li><li><a href="global.html#newManagerPage">newManagerPage</a></li><li><a href="global.html#useAuth">useAuth</a></li><li><a href="global.html#usePoints">usePoints</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Wed Dec 04 2024 17:57:17 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
