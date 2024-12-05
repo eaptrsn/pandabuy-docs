@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Cart.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Cart.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @file Cart.js
+ * @description A React component for displaying a shopping cart, allowing users to view items, remove them, and proceed to checkout.
+ */
+
+import React from "react";
+import { useNavigate } from "react-router-dom";
+
+/**
+ * Cart Component
+ * @description Renders a cart view with items, their prices, and a total calculation. 
+ *              Users can remove items or proceed to checkout.
+ * @param {Object} props - Component properties.
+ * @param {Array} props.cart - An array of cart items. Each item contains a name and price.
+ * @param {Function} props.handleRemoveFromCart - Function to remove an item from the cart.
+ * @param {Function} props.calculateTotal - Function to calculate the total cost of items in the cart.
+ * @param {Function} props.buttonStyle - Function to apply dynamic styling to the checkout button.
+ * @param {Function} props.setIsCheckingOut - Function to set the checkout state (for navigating to checkout).
+ * @returns {JSX.Element} The rendered cart component.
+ */
+const Cart = ({ cart, handleRemoveFromCart, calculateTotal, buttonStyle, setIsCheckingOut }) => {
+  const navigate = useNavigate();
+
+  // Inline styles for the cart and its elements
+  const cartStyle = {
+    width: "33%",
+    backgroundColor: "white",
+    color: "#D92323",
+    padding: "1em",
+    position: "relative",
+    top: "10px",
+    right: "0px",
+    borderTop: "1px solid #ddd",
+    borderLeft: "1px solid #ddd",
+    borderRadius: "8px",
+    boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+  };
+
+  const cartItemStyle = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "0.3em",
+    borderBottom: "1px solid #ddd",
+    gap: "1em",
+  };
+
+  const priceStyle = {
+    display: "flex",
+    width: "auto",
+    textAlign: "center",
+  };
+
+  const nameStyle = {
+    flex: 2,
+    textAlign: "left",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  };
+
+  return (
+    &lt;div style={cartStyle}>
+      &lt;h2>Your Cart 🛒&lt;/h2>
+      {cart.length > 0 ? (
+        cart.map((item, index) => (
+          &lt;div key={index} style={cartItemStyle}>
+            &lt;span style={nameStyle}>{item.menuname || item.name}&lt;/span>
+            &lt;span style={priceStyle}>${item.price.toFixed(2)}&lt;/span>
+            &lt;button
+              style={{
+                backgroundColor: "transparent",
+                border: "none",
+                color: "#D92323",
+                cursor: "pointer",
+              }}
+              onClick={() => handleRemoveFromCart(index)}
+            >
+              Remove
+            &lt;/button>
+          &lt;/div>
+        ))
+      ) : (
+        &lt;p>Your cart is empty&lt;/p>
+      )}
+      &lt;h3>Total: ${calculateTotal()}&lt;/h3>
+      &lt;button
+        style={buttonStyle(false)}
+        onClick={() => setIsCheckingOut(true)}
+      >
+        Checkout
+      &lt;/button>
+    &lt;/div>
+  );
+};
+
+export default Cart;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#App">App</a></li><li><a href="global.html#AuthProvider">AuthProvider</a></li><li><a href="global.html#BowlOrdering">BowlOrdering</a></li><li><a href="global.html#Cart">Cart</a></li><li><a href="global.html#Checkout">Checkout</a></li><li><a href="global.html#Clock">Clock</a></li><li><a href="global.html#CreateReport">CreateReport</a></li><li><a href="global.html#EditIngredients">EditIngredients</a></li><li><a href="global.html#Employee">Employee</a></li><li><a href="global.html#FoodCard">FoodCard</a></li><li><a href="global.html#Keypad">Keypad</a></li><li><a href="global.html#Kitchen">Kitchen</a></li><li><a href="global.html#KitchenPanel">KitchenPanel</a></li><li><a href="global.html#ManageMenu">ManageMenu</a></li><li><a href="global.html#MenuBoard">MenuBoard</a></li><li><a href="global.html#RestockReport">RestockReport</a></li><li><a href="global.html#Rewards">Rewards</a></li><li><a href="global.html#TextFormatter">TextFormatter</a></li><li><a href="global.html#TransactionHistory">TransactionHistory</a></li><li><a href="global.html#Translate">Translate</a></li><li><a href="global.html#UsageReport">UsageReport</a></li><li><a href="global.html#XReport">XReport</a></li><li><a href="global.html#fetchData">fetchData</a></li><li><a href="global.html#googleTranslateElementInit">googleTranslateElementInit</a></li><li><a href="global.html#newManagerPage">newManagerPage</a></li><li><a href="global.html#useAuth">useAuth</a></li><li><a href="global.html#usePoints">usePoints</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Wed Dec 04 2024 18:53:38 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

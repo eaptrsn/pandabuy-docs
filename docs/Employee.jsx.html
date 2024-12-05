@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Employee.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Employee.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import { useState, useEffect } from "react";
+import Keypad from "./Keypad";
+import { useAuth } from "./AuthProvider";
+
+/**
+ * Employee component represents the employee interface for managing orders and meals.
+ * It handles employee login, meal selection, order summary, and checkout processes.
+ * 
+ * @component
+ * @returns {JSX.Element} The Employee interface.
+ */
+const Employee = () => {
+    const { user, fetchWithAuth } = useAuth();
+    const [isActive, setIsActive] = useState(false);
+    const [input, setInput] = useState('');
+    const [menuData, setMenuData] = useState([]);
+    const [currentMeal, setCurrentMeal] = useState({ type: null, items: [] });
+    const [orderSummary, setOrderSummary] = useState([]);
+    const [totalPrice, setTotalPrice] = useState(0);
+    const [activeTab, setActiveTab] = useState("sides");
+
+    useEffect(() => {
+        const fetchMenu = async () => {
+            const response = await fetchWithAuth("SELECT * FROM menu");
+            setMenuData(response);
+        };
+
+        fetchMenu();
+    }, [fetchWithAuth]);
+    /**
+     * Handles numeric keypad input for login.
+     * @param {string} value - The numeric value entered.
+     */
+    const handleKeyPress = (value) => {
+        setInput(input + value);
+    };
+    /**
+     * Clears the login input.
+     */
+    const handleClear = () => {
+        setInput('');
+    };
+     /**
+     * Submits the login input and validates the employee's login code.
+     * If valid, sets the employee as active.
+     */
+    const handleSubmit = async () => {
+        const query = `SELECT * FROM employees WHERE isActive = TRUE AND logincode = '${input}'`;
+        const response = await fetchWithAuth(query);
+        if (response.length > 0) {
+            setIsActive(true);
+        } else {
+            alert("Invalid login code.");
+        }
+    };
+    /**
+     * Handles the selection of a meal type (e.g., bowl, plate).
+     * @param {string} type - The type of meal selected.
+     */
+    const handleMealTypeSelection = (type) => {
+        const mealPrice = type === "bowl" ? 10.40 : type === "plate" ? 12.25 : type === "bigger plate" ? 14.15 : 0;
+        setCurrentMeal({ type, items: [], price: mealPrice });
+        setActiveTab("sides");
+    };
+    /**
+     * Removes a meal from the order summary.
+     * @param {number} mealIndex - The index of the meal to remove.
+     */
+    const handleRemoveOrderItem = (mealIndex) => {
+        const removedMeal = orderSummary[mealIndex];
+        setOrderSummary((prev) => prev.filter((_, index) => index !== mealIndex));
+        setTotalPrice((prev) => prev - removedMeal.price);
+    };
+    /**
+     * Adds an item to the current meal based on the selected meal type and tab.
+     * Prevents adding more items than the allowed limit.
+     * @param {Object} item - The item selected.
+     */
+    const handleItemSelection = (item) => {
+        if (currentMeal.type === "other") {
+            handleAddOtherItem(item);
+        } else {
+            const maxSides = 1;
+            const maxEntrees = currentMeal.type === "bowl" ? 1 : currentMeal.type === "plate" ? 2 : currentMeal.type === "bigger plate" ? 3 : Infinity;
+
+            const sideCount = currentMeal.items.filter(i => i.menutype === "side").length;
+            const entreeCount = currentMeal.items.filter(i => i.menutype === "main").length;
+
+            if ((item.menutype === "side" &amp;&amp; sideCount >= maxSides) || (item.menutype === "main" &amp;&amp; entreeCount >= maxEntrees)) {
+                return;
+            }
+
+            setCurrentMeal((prev) => ({
+                ...prev,
+                items: [...prev.items, item],
+            }));
+
+            if (item.menutype === "side") {
+                setActiveTab("entrees");
+            }
+        }
+    };
+    /**
+     * Removes the last item added to the current meal.
+     */
+    const handleRemoveLastItemInCurrentMeal = () => {
+        setCurrentMeal((prev) => ({
+            ...prev,
+            items: prev.items.slice(0, -1),
+        }));
+    };
+    /**
+     * Adds the current meal to the order summary and resets the current meal state.
+     */
+    const handleAddMealToOrder = () => {
+        setOrderSummary((prev) => [...prev, currentMeal]);
+        setTotalPrice((prev) => prev + currentMeal.price);
+
+        setCurrentMeal({ type: null, items: [], price: 0 });
+    };
+    /**
+     * Adds an individual item as "Other" to the order summary.
+     * @param {Object} item - The item selected.
+     */
+    const handleAddOtherItem = (item) => {
+        setOrderSummary((prev) => [
+            ...prev,
+            { type: "other", items: [item], price: parseFloat(item.price) }
+        ]);
+        setTotalPrice((prev) => prev + parseFloat(item.price));
+    };
+    /**
+     * Removes the last meal added to the order summary.
+     */
+    const handleRemoveLastOrderItem = () => {
+        if (orderSummary.length === 0) return;
+
+        const lastItem = orderSummary[orderSummary.length - 1];
+        setOrderSummary((prev) => prev.slice(0, -1));
+        setTotalPrice((prev) => prev - lastItem.price);
+    };
+    /**
+     * Inserts transaction history into the database and returns the transaction ID.
+     * @returns {Promise&lt;number>} The ID of the newly created transaction.
+     */
+    const insertTransactionHistory = async () => {
+        const transactionDate = new Date().toISOString();
+    
+        // Format the order string and escape special characters
+        const orderString = orderSummary.map(meal => {
+            if (meal.type === "other") {
+                return `Other - ${meal.items.map(item => item.menuname.replace(/'/g, "''")).join(", ")}`;
+            } else {
+                const sideItems = meal.items.filter(item => item.menutype === "side").map(item => item.menuname.replace(/'/g, "''"));
+                const entreeItems = meal.items.filter(item => item.menutype === "main").map(item => item.menuname.replace(/'/g, "''"));
+                return `${meal.type.charAt(0).toUpperCase() + meal.type.slice(1)} - ${sideItems.join("- ")} - ${entreeItems.join("- ")}`;
+            }
+        }).join(", ");
+    
+        const query = `
+            INSERT INTO transaction_history (transaction_date, amount, name, order_string, order_status)
+            VALUES ('${transactionDate}', ${totalPrice.toFixed(2)}, '', '${orderString}', 'done')
+            RETURNING transaction_id
+        `;
+    
+        const response = await fetchWithAuth(query);
+        const newTransactionId = response[0].transaction_id;
+        return newTransactionId;
+    };
+    /**
+     * Inserts transaction items into the database for the given transaction ID.
+     * Updates inventory items for each meal and item.
+     * @param {number} transactionId - The ID of the transaction.
+     */
+    const insertTransactionItems = async (transactionId) => {
+        for (const meal of orderSummary) {
+            for (const item of meal.items) {
+                const inventoryItemsQuery = `
+                    SELECT inventory FROM menuinventory WHERE menu = ${item.id}
+                `;
+                const inventoryItems = await fetchWithAuth(inventoryItemsQuery);
+    
+                for (const inventoryItem of inventoryItems) {
+                    const insertItemQuery = `
+                        INSERT INTO transaction_items (transaction_id, item_num)
+                        VALUES (${transactionId}, ${inventoryItem.inventory})
+                    `;
+                    await fetchWithAuth(insertItemQuery);
+                }
+            }
+        }
+    };
+    /**
+     * Handles checkout process by inserting transaction history, updating inventory,
+     * and resetting the state.
+     */
+    const handleCheckout = async () => {
+        // Insert the transaction and get the new transaction ID
+        const transactionId = await insertTransactionHistory();
+    
+        // Update inventory and insert into transaction_items
+        await insertTransactionItems(transactionId);
+    
+        for (const meal of orderSummary) {
+            for (const item of meal.items) {
+                const inventoryUpdateQuery = `
+                    UPDATE inventory
+                    SET currentstock = currentstock - 1
+                    WHERE itemnum IN (
+                        SELECT inventory
+                        FROM menuinventory
+                        WHERE menu = ${item.id}
+                    )
+                `;
+                await fetchWithAuth(inventoryUpdateQuery);
+            }
+        }
+    
+        // Show total price and reset order state
+        alert(`Total Price: $${totalPrice.toFixed(2)}`);
+        setOrderSummary([]);
+        setTotalPrice(0);
+        setCurrentMeal({ type: null, items: [], price: 0 });
+    };
+     /**
+     * Filters menu items based on the active tab and the current meal type.
+     * @returns {Array} Filtered menu items.
+     */
+    const filteredMenuItems = menuData.filter(item => 
+        (activeTab === "sides" &amp;&amp; item.menutype === "side") ||
+        (activeTab === "entrees" &amp;&amp; item.menutype === "main") ||
+        (currentMeal.type === "other")
+    );
+    /**
+     * Determines if a menu item should be disabled based on the current meal type and selected items.
+     * 
+     * @param {Object} item - The menu item to evaluate.
+     * @param {string} item.menutype - The type of the menu item (e.g., "side", "main").
+     * @returns {boolean} `true` if the item should be disabled, `false` otherwise.
+     */
+    const isItemDisabled = (item) => {
+        if (currentMeal.type === "other") return false;
+        
+        const maxSides = 1;
+        const maxEntrees = currentMeal.type === "bowl" ? 1 : currentMeal.type === "plate" ? 2 : currentMeal.type === "bigger plate" ? 3 : Infinity;
+        const sideCount = currentMeal.items.filter(i => i.menutype === "side").length;
+        const entreeCount = currentMeal.items.filter(i => i.menutype === "main").length;
+
+        if (item.menutype === "side" &amp;&amp; sideCount >= maxSides) return true;
+        if (item.menutype === "main" &amp;&amp; entreeCount >= maxEntrees) return true;
+        return false;
+    };
+    /**
+     * Checks whether the current meal can be added to the order based on its type and selected items.
+     * 
+     * @returns {boolean} `true` if the current meal has the required number of sides and entrees, `false` otherwise.
+     */
+    const canAddMealToOrder = () => {
+        const sideCount = currentMeal.items.filter(i => i.menutype === "side").length;
+        const entreeCount = currentMeal.items.filter(i => i.menutype === "main").length;
+
+        if (currentMeal.type === "bowl") {
+            return sideCount === 1 &amp;&amp; entreeCount === 1;
+        } else if (currentMeal.type === "plate") {
+            return sideCount === 1 &amp;&amp; entreeCount === 2;
+        } else if (currentMeal.type === "bigger plate") {
+            return sideCount === 1 &amp;&amp; entreeCount === 3;
+        }
+        return false;
+    };
+    /**
+     * Renders the keypad interface for employee login if the employee is not active.
+     * 
+     * @component
+     * @param {Function} handleKeyPress - Function to handle numeric keypad input.
+     * @param {Function} handleClear - Function to clear the current input.
+     * @param {Function} handleSubmit - Function to submit the login input for validation.
+     * @param {string} input - The current input entered by the employee.
+     * @returns {JSX.Element} The Keypad component.
+     */
+
+    if (!isActive) {
+        return (
+            &lt;Keypad handleKeyPress={handleKeyPress} handleClear={handleClear} handleSubmit={handleSubmit} input={input} />
+        );
+    }
+
+
+    return (
+        &lt;div style={{ overflowY: "auto", height: "100vh", padding: "20px" }}>
+            &lt;div style={{ display: "flex" }}>
+                {/* Main Content Area */}
+                &lt;div style={{ flex: "2", marginRight: "20px" }}>
+                    &lt;div style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
+                        &lt;button onClick={() => handleMealTypeSelection("bowl")} style={buttonStyle}>Bowl&lt;/button>
+                        &lt;button onClick={() => handleMealTypeSelection("plate")} style={buttonStyle}>Plate&lt;/button>
+                        &lt;button onClick={() => handleMealTypeSelection("bigger plate")} style={buttonStyle}>Bigger Plate&lt;/button>
+                        &lt;button onClick={() => handleMealTypeSelection("other")} style={buttonStyle}>Other - Select Individually&lt;/button>
+                    &lt;/div>
+
+                    {/* Tabs for Sides and Entrees or display all items for "Other" */}
+                    {["bowl", "plate", "bigger plate"].includes(currentMeal.type) &amp;&amp; (
+                        &lt;div>
+                            &lt;button
+                                style={activeTab === "sides" ? activeTabStyle : tabStyle}
+                                onClick={() => setActiveTab("sides")}
+                            >
+                                Sides
+                            &lt;/button>
+                            &lt;button
+                                style={activeTab === "entrees" ? activeTabStyle : tabStyle}
+                                onClick={() => setActiveTab("entrees")}
+                            >
+                                Entrees
+                            &lt;/button>
+
+                            &lt;div style={itemContainerStyle}>
+                                &lt;h2>Select Items for {currentMeal.type === "bowl" ? "Bowl" : currentMeal.type === "plate" ? "Plate" : "Bigger Plate"}&lt;/h2>
+                                &lt;ul style={{ listStyle: "none", padding: 0 }}>
+                                    {filteredMenuItems.map((item) => (
+                                        &lt;li key={item.id} style={{ marginBottom: "10px" }}>
+                                            &lt;button
+                                                onClick={() => handleItemSelection(item)}
+                                                style={{
+                                                    ...itemButtonStyle,
+                                                    backgroundColor: isItemDisabled(item) ? "#ccc" : "#6b38b1",
+                                                    cursor: isItemDisabled(item) ? "not-allowed" : "pointer"
+                                                }}
+                                                disabled={isItemDisabled(item)}
+                                            >
+                                                {item.menuname.replace(/_/g, ' ')}
+                                            &lt;/button>
+                                        &lt;/li>
+                                    ))}
+                                &lt;/ul>
+                            &lt;/div>
+
+                            &lt;h3>Selected Items for {currentMeal.type === "bowl" ? "Bowl" : currentMeal.type === "plate" ? "Plate" : "Bigger Plate"}:&lt;/h3>
+                            &lt;ul style={{ listStyle: "none", paddingLeft: "20px" }}>
+                                {currentMeal.items.map((item, index) => (
+                                    &lt;li key={index}>{item.menutype === "side" ? "Side" : "Entree"}: {item.menuname.replace(/_/g, ' ')}&lt;/li>
+                                ))}
+                            &lt;/ul>
+
+                            &lt;div style={{ marginBottom: "10px", display: "flex", gap: "10px", padding: "40px 0px" }}>
+                                &lt;button 
+                                    onClick={handleRemoveLastItemInCurrentMeal} 
+                                    style={buttonStyle}
+                                >
+                                    Remove Last Item
+                                &lt;/button>
+
+                                &lt;button 
+                                    onClick={handleAddMealToOrder} 
+                                    style={buttonStyle}
+                                    disabled={!canAddMealToOrder()}
+                                >
+                                    Add {currentMeal.type === "bowl" ? "Bowl" : currentMeal.type === "plate" ? "Plate" : "Bigger Plate"} to Order - ${currentMeal.price.toFixed(2)}
+                                &lt;/button>
+                            &lt;/div>
+                        &lt;/div>
+                    )}
+
+                    {currentMeal.type === "other" &amp;&amp; (
+                        &lt;div style={itemContainerStyle}>
+                            &lt;h2>Select Individual Items&lt;/h2>
+                            &lt;ul style={{ listStyle: "none", padding: 0 }}>
+                                {menuData.map((item) => (
+                                    &lt;li key={item.id} style={{ marginBottom: "10px" }}>
+                                        &lt;button
+                                            onClick={() => handleAddOtherItem(item)}
+                                            style={itemButtonStyle}
+                                        >
+                                            {item.menuname.replace(/_/g, ' ')} - ${item.price.toFixed(2)}
+                                        &lt;/button>
+                                    &lt;/li>
+                                ))}
+                            &lt;/ul>
+                        &lt;/div>
+                    )}
+                &lt;/div>
+
+                &lt;div style={{ flex: "1", backgroundColor: "#f0f0f0", padding: "20px", borderRadius: "8px" }}>
+                    &lt;h2>Order Summary&lt;/h2>
+                    &lt;ul style={{ listStyle: "none", padding: 0 }}>
+                        {orderSummary.map((meal, mealIndex) => (
+                            &lt;li key={mealIndex}>
+                                &lt;strong>{meal.type === "bowl" ? "Bowl" : meal.type === "plate" ? "Plate" : meal.type === "bigger plate" ? "Bigger Plate" : "Other"}&lt;/strong> - ${meal.price.toFixed(2)}
+                                &lt;ul style={{ paddingLeft: "20px" }}>
+                                    {meal.items.map((item, itemIndex) => (
+                                        &lt;li key={itemIndex}>- {item.menutype === "side" ? "Side" : "Entree"}: {item.menuname.replace(/_/g, ' ')}&lt;/li>
+                                    ))}
+                                &lt;/ul>
+                                &lt;button 
+                                    onClick={() => handleRemoveOrderItem(mealIndex)} 
+                                    style={{ marginLeft: "10px", backgroundColor: "#dc3545", color: "#fff", border: "none", borderRadius: "5px", cursor: "pointer", padding: "5px 10px" }}
+                                >
+                                    Remove
+                                &lt;/button>
+                            &lt;/li>
+                        ))}
+                    &lt;/ul>
+                    &lt;h3>Total: ${totalPrice.toFixed(2)}&lt;/h3>
+
+                    &lt;div style={{ display: "flex", gap: "10px", marginTop: "10px", padding: "40px"}}>
+                        &lt;button onClick={handleCheckout} style={buttonStyle}>Checkout&lt;/button>
+                    &lt;/div>
+                &lt;/div>
+
+            &lt;/div>
+        &lt;/div>
+    );
+};
+
+// Styles
+const tabStyle = {
+    padding: "10px 20px",
+    margin: "5px",
+    cursor: "pointer",
+    backgroundColor: "#ddd",
+    borderRadius: "5px",
+    border: "none"
+};
+
+const activeTabStyle = {
+    ...tabStyle,
+    backgroundColor: "#4b60b3",
+    color: "#fff",
+};
+
+const itemContainerStyle = {
+    maxHeight: "400px",
+    overflowY: "auto",
+    padding: "10px",
+    border: "1px solid #ddd",
+    borderRadius: "8px",
+    marginTop: "10px",
+};
+
+const itemButtonStyle = {
+    backgroundColor: "#6b38b1",
+    color: "#fff",
+    padding: "10px 40px",
+    borderRadius: "5px",
+    border: "none",
+    width: "100%",
+    textAlign: "left",
+    cursor: "pointer",
+};
+
+const buttonStyle = {
+    color: 'white',
+    backgroundColor: '#dc3545',
+    padding: '10px 40px',
+    border: 'none',
+    borderRadius: '5px',
+    cursor: 'pointer',
+};
+
+export default Employee;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#App">App</a></li><li><a href="global.html#AuthProvider">AuthProvider</a></li><li><a href="global.html#BowlOrdering">BowlOrdering</a></li><li><a href="global.html#Cart">Cart</a></li><li><a href="global.html#Checkout">Checkout</a></li><li><a href="global.html#Clock">Clock</a></li><li><a href="global.html#CreateReport">CreateReport</a></li><li><a href="global.html#EditIngredients">EditIngredients</a></li><li><a href="global.html#Employee">Employee</a></li><li><a href="global.html#FoodCard">FoodCard</a></li><li><a href="global.html#Keypad">Keypad</a></li><li><a href="global.html#Kitchen">Kitchen</a></li><li><a href="global.html#KitchenPanel">KitchenPanel</a></li><li><a href="global.html#ManageMenu">ManageMenu</a></li><li><a href="global.html#MenuBoard">MenuBoard</a></li><li><a href="global.html#RestockReport">RestockReport</a></li><li><a href="global.html#Rewards">Rewards</a></li><li><a href="global.html#TextFormatter">TextFormatter</a></li><li><a href="global.html#TransactionHistory">TransactionHistory</a></li><li><a href="global.html#Translate">Translate</a></li><li><a href="global.html#UsageReport">UsageReport</a></li><li><a href="global.html#XReport">XReport</a></li><li><a href="global.html#fetchData">fetchData</a></li><li><a href="global.html#googleTranslateElementInit">googleTranslateElementInit</a></li><li><a href="global.html#newManagerPage">newManagerPage</a></li><li><a href="global.html#useAuth">useAuth</a></li><li><a href="global.html#usePoints">usePoints</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Wed Dec 04 2024 18:53:38 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

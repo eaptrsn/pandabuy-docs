@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Checkout.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Checkout.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @file Checkout.js
+ * @description A React component for the checkout screen where users can add extra items , add rewards numbers, and checkout
+ */
+import React, { useState } from "react";
+import SuggestionPanel from "./SuggestionPanel";
+import Rewards from "./Rewards";
+import TextFormatter from "./TextFormatter";
+import { usePoints } from './pointsHelper';
+
+/**
+ * The `Checkout` component handles the checkout process, displaying the cart items,
+ * total price, and integration with rewards and suggestions systems.
+ * 
+ * @component
+ * @param {Object} props - The component props.
+ * @param {string} props.checkoutString - A string representing the current cart items.
+ * @param {number} props.totalPrice - The total price of the items in the cart.
+ * @param {Function} props.handleDatabaseUpdate - Function to update the database with the cart and total price.
+ * @param {Function} props.reset - Function to reset the cart after finalizing the order.
+ * @returns {JSX.Element} The rendered Checkout component.
+ */
+const Checkout = ({ checkoutString, totalPrice, handleDatabaseUpdate, reset }) => {
+    const [cost, setCost] = useState(totalPrice)
+    const [cart, setCart] = useState(checkoutString)
+    const [phone, setPhone] = useState('');
+
+    const { addPoints } = usePoints()
+
+    const handleFinalize = () => {
+        handleDatabaseUpdate(cart, cost)
+        addPoints(phone, Number(cost.toFixed(0)))
+        reset()
+    }
+
+    // console.log(typeof cost)
+    
+    const cartItemStyle = {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0.3em",
+        borderBottom: "1px solid #ddd",
+        gap: "1em",
+    };
+    
+    const nameStyle = {
+        flex: 2, // Allow more space for item name
+        textAlign: "left",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+    };
+    
+    const priceStyle = {
+        display: "flex",
+        width: "auto",
+        textAlign: "center",
+    };
+    
+    return (
+        &lt;div style={{ textAlign: "center", marginTop: "2em", padding: "1em" }}>
+        &lt;h1>Checkout:&lt;/h1>
+        &lt;h2>Total Amount: ${cost.toFixed(2)}&lt;/h2>
+        &lt;h3>Cart:&lt;/h3>
+        &lt;TextFormatter text={cart}/>
+        &lt;SuggestionPanel setCart={setCart} setCost={setCost}/>
+        &lt;Rewards cost={cost} setCost={setCost} phone={phone} setPhone={setPhone}/>
+        &lt;button onClick={handleFinalize}>Finalize Order&lt;/button>
+        &lt;/div>
+        );
+    };
+
+    export default Checkout;
+    </code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#App">App</a></li><li><a href="global.html#AuthProvider">AuthProvider</a></li><li><a href="global.html#BowlOrdering">BowlOrdering</a></li><li><a href="global.html#Cart">Cart</a></li><li><a href="global.html#Checkout">Checkout</a></li><li><a href="global.html#Clock">Clock</a></li><li><a href="global.html#CreateReport">CreateReport</a></li><li><a href="global.html#EditIngredients">EditIngredients</a></li><li><a href="global.html#Employee">Employee</a></li><li><a href="global.html#FoodCard">FoodCard</a></li><li><a href="global.html#Keypad">Keypad</a></li><li><a href="global.html#Kitchen">Kitchen</a></li><li><a href="global.html#KitchenPanel">KitchenPanel</a></li><li><a href="global.html#ManageMenu">ManageMenu</a></li><li><a href="global.html#MenuBoard">MenuBoard</a></li><li><a href="global.html#RestockReport">RestockReport</a></li><li><a href="global.html#Rewards">Rewards</a></li><li><a href="global.html#TextFormatter">TextFormatter</a></li><li><a href="global.html#TransactionHistory">TransactionHistory</a></li><li><a href="global.html#Translate">Translate</a></li><li><a href="global.html#UsageReport">UsageReport</a></li><li><a href="global.html#XReport">XReport</a></li><li><a href="global.html#fetchData">fetchData</a></li><li><a href="global.html#googleTranslateElementInit">googleTranslateElementInit</a></li><li><a href="global.html#newManagerPage">newManagerPage</a></li><li><a href="global.html#useAuth">useAuth</a></li><li><a href="global.html#usePoints">usePoints</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Wed Dec 04 2024 18:53:38 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

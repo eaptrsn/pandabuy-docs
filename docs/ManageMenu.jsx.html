@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: ManageMenu.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: ManageMenu.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @file ManageMenu.js
+ * @description A React component for managing a restaurant menu, including adding, editing, and deleting menu items, 
+ *              as well as editing ingredients associated with each menu item.
+ */
+
+import React, { useEffect, useState } from 'react';
+import { useAuth } from './AuthProvider';
+import EditIngredients from './editIngredient';
+
+/**
+ * ManageMenu Component
+ * @param {Object} props - Component properties.
+ * @param {Function} props.setNav - Function to set the current navigation state.
+ * @returns {JSX.Element} A React component for managing menu items and ingredients.
+ */
+const ManageMenu = ({ setNav }) => {
+    const { user, fetchWithAuth } = useAuth();
+    const [menuData, setMenuData] = useState([]);
+    const [menuItem, setMenuItem] = useState({
+        id: '',
+        menuname: '',
+        price: '',
+        isseasonal: false,
+        menutype: '',
+        imagelink: '',
+        allergy: ''
+    });
+    const [ingredientsMap, setIngredientsMap] = useState({});
+    const [isEditWindowOpen, setEditWindowOpen] = useState(false);
+    const [editingMenuId, setEditingMenuId] = useState(null);
+
+    /**
+     * Fetches menu and ingredient data from the database and updates state.
+     * @async
+     * @function fetchData
+     */
+    const fetchData = async () => {
+        const response = await fetchWithAuth("SELECT * FROM menu");
+        setMenuData(response);
+        const inventoryResponse = await fetchWithAuth(`
+            SELECT
+                m.id AS menu_id,
+                i.itemname AS inventory_name
+            FROM menuinventory mi
+            INNER JOIN menu m ON mi.menu = m.id
+            INNER JOIN inventory i ON mi.inventory = i.itemnum
+        `);
+        const map = inventoryResponse.reduce((acc, item) => {
+            if (!acc[item.menu_id]) acc[item.menu_id] = [];
+            acc[item.menu_id].push(item.inventory_name);
+            return acc;
+        }, {});
+        setIngredientsMap(map);
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, [user]);
+
+    /**
+     * Handles input changes for form fields.
+     * @param {Object} e - The event object.
+     */
+    const handleInputChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        setMenuItem(prevState => ({
+            ...prevState,
+            [name]: type === 'checkbox' ? checked : value
+        }));
+    };
+
+    /**
+     * Handles menu item actions such as adding or editing.
+     * @param {string} action - The action to perform ('add' or 'edit').
+     */
+    const handleMenuAction = async (action) => {
+        const { menuname, price, isseasonal, menutype, imagelink, allergy } = menuItem;
+        if (!menuname) {
+            alert("Menu name is required.");
+            return;
+        }
+        const formattedMenuName = menuname.replace(/\s+/g, '_').toLowerCase();
+
+        try {
+            if (action === 'add') {
+                await fetchWithAuth(`
+                    INSERT INTO menu (menuname, price, isseasonal, menutype, imagelink, allergy) 
+                    VALUES ('${formattedMenuName}', ${price}, '${isseasonal}', '${menutype}', '${imagelink}', '${allergy}')
+                `);
+                fetchData();
+                setMenuItem({ menuname: '', price: '', isseasonal: false, menutype: '', imagelink: '', allergy: '' });
+            } else if (action === 'edit') {
+                const updateFields = [];
+                if (price) updateFields.push(`price = ${price}`);
+                if (isseasonal) updateFields.push(`isseasonal = '${isseasonal}'`);
+                if (menutype) updateFields.push(`menutype = '${menutype}'`);
+                if (imagelink) updateFields.push(`imagelink = '${imagelink}'`);
+                if (allergy) updateFields.push(`allergy = '${allergy}'`);
+
+                if (updateFields.length > 0) {
+                    await fetchWithAuth(`
+                        UPDATE menu 
+                        SET ${updateFields.join(', ')} 
+                        WHERE LOWER(REPLACE(menuname, ' ', '_')) = '${formattedMenuName}'
+                    `);
+                    fetchData();
+                }
+            }
+        } catch (error) {
+            console.error(`Error performing ${action} action:`, error);
+            alert(`An error occurred while trying to ${action} the menu item.`);
+        }
+    };
+
+    /**
+     * Deletes a menu item by ID.
+     * @async
+     * @param {number} id - The ID of the menu item to delete.
+     */
+    const deleteItem = async (id) => {
+        try {
+            await fetchWithAuth(`DELETE FROM menu WHERE id = '${id}'`);
+            fetchData();
+        } catch (error) {
+            console.error("Error removing menu item:", error);
+            alert("An error occurred while removing the menu item.");
+        }
+    };
+
+    /**
+     * Opens the ingredient editing window.
+     * @param {number} menuId - The ID of the menu item to edit.
+     */
+    const openEditWindow = (menuId) => {
+        setEditingMenuId(menuId);
+        setEditWindowOpen(true);
+    };
+
+    /**
+     * Closes the ingredient editing window.
+     */
+    const closeEditWindow = () => {
+        setEditingMenuId(null);
+        setEditWindowOpen(false);
+    };
+
+    return (
+        &lt;div style={pageContainerStyle}>
+            &lt;div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                &lt;h2>Menu Item&lt;/h2>
+                &lt;button style={buttonStyle} onClick={() => setNav('main')}>Back to Manager&lt;/button>
+            &lt;/div>
+            &lt;div style={{ maxHeight: '300px', overflowY: 'auto', border: '4px solid', marginBottom: '20px' }}>
+                {menuData.length > 0 ? (
+                    &lt;table style={{ borderCollapse: 'collapse', width: '100%' }}>
+                        &lt;thead>
+                            &lt;tr>
+                                &lt;th style={tableCellStyle}>ID&lt;/th>
+                                &lt;th style={tableCellStyle}>Item Name&lt;/th>
+                                &lt;th style={tableCellStyle}>Price&lt;/th>
+                                &lt;th style={tableCellStyle}>Seasonal&lt;/th>
+                                &lt;th style={tableCellStyle}>Type&lt;/th>
+                                &lt;th style={tableCellStyle}>Image&lt;/th>
+                                &lt;th style={tableCellStyle}>Allergy&lt;/th>
+                                &lt;th style={tableCellStyle}>Ingredients&lt;/th>
+                                &lt;th style={tableCellStyle}>Edit Ingredients&lt;/th>
+                                &lt;th style={tableCellStyle}>Delete&lt;/th>
+                            &lt;/tr>
+                        &lt;/thead>
+                        &lt;tbody>
+                            {menuData.map(menu => (
+                                &lt;tr key={menu.id}>
+                                    &lt;td style={tableCellStyle}>{menu.id}&lt;/td>
+                                    &lt;td style={tableCellStyle}>{menu.menuname.replace(/_/g, ' ')}&lt;/td>
+                                    &lt;td style={tableCellStyle}>{menu.price}&lt;/td>
+                                    &lt;td style={tableCellStyle}>{menu.isseasonal ? 'Yes' : 'No'}&lt;/td>
+                                    &lt;td style={tableCellStyle}>{menu.menutype}&lt;/td>
+                                    &lt;td style={tableCellStyle}>
+                                        {menu.imagelink ? (
+                                            &lt;a href={menu.imagelink} target="_blank" rel="noopener noreferrer">
+                                                View Image
+                                            &lt;/a>
+                                        ) : (
+                                            &lt;span>No Image Available&lt;/span>
+                                        )}
+                                    &lt;/td>
+                                    &lt;td style={tableCellStyle}>{menu.allergy || 'N/A'}&lt;/td>
+                                    &lt;td style={tableCellStyle}>
+                                        {ingredientsMap[menu.id]?.join(', ') || 'No ingredients'}
+                                    &lt;/td>
+                                    &lt;td style={tableCellStyle}>
+                                        &lt;button style={toggleButtonStyle} onClick={() => openEditWindow(menu.id)}>Edit Ingredients&lt;/button>
+                                    &lt;/td>
+                                    &lt;td style={tableCellStyle}>
+                                        &lt;button style={toggleButtonStyle} onClick={() => deleteItem(menu.id)}>Delete&lt;/button>
+                                    &lt;/td>
+                                &lt;/tr>
+                            ))}
+                        &lt;/tbody>
+                    &lt;/table>
+                ) : (
+                    "Loading..."
+                )}
+                {isEditWindowOpen &amp;&amp; (
+                    &lt;EditIngredients menuId={editingMenuId} closeWindow={closeEditWindow} />
+                )}
+            &lt;/div>
+            &lt;h3>Menu Item Actions&lt;/h3>
+            &lt;input type="text" placeholder="Menu Name" value={menuItem.menuname} onChange={(e) => setMenuItem({ ...menuItem, menuname: e.target.value })} />
+            &lt;input type="number" placeholder="Price" value={menuItem.price} onChange={(e) => setMenuItem({ ...menuItem, price: e.target.value })} />
+            &lt;select type="text" value={menuItem.isseasonal} onChange={(e) => setMenuItem({ ...menuItem, isseasonal: e.target.value })}>
+                &lt;option value="" disabled>Seasonal Item&lt;/option>
+                &lt;option value="true">Seasonal&lt;/option>
+                &lt;option value="false">Not Seasonal&lt;/option>
+            &lt;/select>
+            &lt;select type="text" value={menuItem.menutype} onChange={(e) => setMenuItem({ ...menuItem, menutype: e.target.value })}>
+                &lt;option value="" disabled hidden>Select Menu Type&lt;/option>
+                &lt;option value="side">Side&lt;/option>
+                &lt;option value="main">Main&lt;/option>
+                &lt;option value="appetizer">Appetizer&lt;/option>
+                &lt;option value="drink">Drink&lt;/option>
+            &lt;/select>
+            &lt;input type="text" placeholder="Image Link" value={menuItem.imagelink} onChange={(e) => setMenuItem({ ...menuItem, imagelink: e.target.value })} />
+            &lt;select type="text" placeholder="Allergy" value={menuItem.allergy} onChange={(e) => setMenuItem({ ...menuItem, allergy: e.target.value })}>
+                &lt;option value="" disabled hidden>Select Allergy&lt;/option>
+                &lt;option value="gluten">Gluten&lt;/option>
+                &lt;option value="nut">Nut&lt;/option>
+                &lt;option value="egg">Egg&lt;/option>
+                &lt;option value="milk">Milk&lt;/option>
+                &lt;option value="N/A">None&lt;/option>
+            &lt;/select>
+            &lt;button style={buttonStyle} onClick={() => handleMenuAction('add')}>Add Item&lt;/button>
+            &lt;button style={buttonStyle} onClick={() => handleMenuAction('edit')}>Edit Item&lt;/button>
+        &lt;/div>
+    );
+};
+
+// Styles for the component
+const tableCellStyle = {
+    border: '1px solid black',
+    padding: '8px',
+    textAlign: 'left',
+};
+
+const buttonStyle = {
+    color: 'white',
+    backgroundColor: '#dc3545',
+    padding: '10px 20px',
+    border: 'none',
+    borderRadius: '5px',
+    cursor: 'pointer',
+};
+
+const toggleButtonStyle = {
+    cursor: 'pointer',
+    backgroundColor: '#dc3545',
+    color: 'white',
+    fontSize: '12px',
+    padding: '5px 10px',
+    border: 'none',
+    borderRadius: '3px',
+    transition: 'background-color 0.3s',
+};
+
+const pageContainerStyle = {
+    minHeight: '100vh',
+    height: '50vh',
+    overflowY: 'auto',
+    padding: '20px',
+    paddingBottom: '50px',
+};
+
+export default ManageMenu;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#App">App</a></li><li><a href="global.html#AuthProvider">AuthProvider</a></li><li><a href="global.html#BowlOrdering">BowlOrdering</a></li><li><a href="global.html#Cart">Cart</a></li><li><a href="global.html#Checkout">Checkout</a></li><li><a href="global.html#Clock">Clock</a></li><li><a href="global.html#CreateReport">CreateReport</a></li><li><a href="global.html#EditIngredients">EditIngredients</a></li><li><a href="global.html#Employee">Employee</a></li><li><a href="global.html#FoodCard">FoodCard</a></li><li><a href="global.html#Keypad">Keypad</a></li><li><a href="global.html#Kitchen">Kitchen</a></li><li><a href="global.html#KitchenPanel">KitchenPanel</a></li><li><a href="global.html#ManageMenu">ManageMenu</a></li><li><a href="global.html#MenuBoard">MenuBoard</a></li><li><a href="global.html#RestockReport">RestockReport</a></li><li><a href="global.html#Rewards">Rewards</a></li><li><a href="global.html#TextFormatter">TextFormatter</a></li><li><a href="global.html#TransactionHistory">TransactionHistory</a></li><li><a href="global.html#Translate">Translate</a></li><li><a href="global.html#UsageReport">UsageReport</a></li><li><a href="global.html#XReport">XReport</a></li><li><a href="global.html#fetchData">fetchData</a></li><li><a href="global.html#googleTranslateElementInit">googleTranslateElementInit</a></li><li><a href="global.html#newManagerPage">newManagerPage</a></li><li><a href="global.html#useAuth">useAuth</a></li><li><a href="global.html#usePoints">usePoints</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Wed Dec 04 2024 18:53:38 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
